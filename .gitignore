@@ -1,3 +1,7 @@
+*.pt
+scsurv-env
+figures
+src/scsurv/preprocess.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
