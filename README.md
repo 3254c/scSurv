@@ -15,12 +15,19 @@ You can use the latest development version from GitHub.
 
 # Dependencies
 Python >= 3.8.16
+
 torch >= 1.13.1
+
 lifelines >= 0.27.8
+
 scanpy >= 1.9.5
+
 pandas >= 1.5.3
+
 numpy >= 1.23.5
+
 matplotlib >= 3.7.2
+
 scipy >= 1.10.1
 
 # Usage
