@@ -57,24 +57,24 @@ def run_scSurv(
         spatial_count = None
     model_params_dict.update(model_params)
     print(model_params_dict)
-    vaesm_exp = scSurvExperiment(model_params=model_params, x_count=x_count, bulk_count=bulk_count, survival_time=survival_time, cutting_off_0_1=cutting_off_0_1, x_batch_size=x_batch_size_VAE, checkpoint=param_save_path,
+    scsurv_exp = scSurvExperiment(model_params=model_params, x_count=x_count, bulk_count=bulk_count, survival_time=survival_time, cutting_off_0_1=cutting_off_0_1, x_batch_size=x_batch_size_VAE, checkpoint=param_save_path,
                                 usePoisson_sc=usePoisson_sc, batch_onehot=batch_onehot, spatial_count=spatial_count, method=method, use_val_loss_mean=use_val_loss_mean)
 
-    vaesm_exp = optimize_vae(vaesm_exp=vaesm_exp, first_lr=first_lr, x_batch_size=x_batch_size_VAE, epoch=epoch, patience=patience, param_save_path=param_save_path)
-    torch.save(vaesm_exp.vaesm.state_dict(), param_save_path.replace('.pt', '') + '_1st_end.pt')
-    vaesm_exp = optimize_deepcolor(vaesm_exp=vaesm_exp, second_lr=second_lr, x_batch_size=x_batch_size_DeepCOLOR, epoch=epoch, patience=patience, param_save_path=param_save_path, spatial_adata=spatial_adata)
-    torch.save(vaesm_exp.vaesm.state_dict(), param_save_path.replace('.pt', '') + '_2nd_end.pt')
-    vaesm_exp.bulk_data_split(bulk_seed, bulk_validation_num_or_ratio, bulk_test_num_or_ratio, cutting_off_0_1)
-    vaesm_exp = optimize_scSurv(vaesm_exp, third_lr = third_lr, x_batch_size=x_batch_size_scSurv, epoch = epoch, patience = patience, param_save_path = param_save_path)    
-    torch.save(vaesm_exp.vaesm.state_dict(), param_save_path)
+    scsurv_exp = optimize_vae(scsurv_exp=scsurv_exp, first_lr=first_lr, x_batch_size=x_batch_size_VAE, epoch=epoch, patience=patience, param_save_path=param_save_path)
+    torch.save(scsurv_exp.vaesm.state_dict(), param_save_path.replace('.pt', '') + '_1st_end.pt')
+    scsurv_exp = optimize_deepcolor(scsurv_exp=scsurv_exp, second_lr=second_lr, x_batch_size=x_batch_size_DeepCOLOR, epoch=epoch, patience=patience, param_save_path=param_save_path, spatial_adata=spatial_adata)
+    torch.save(scsurv_exp.vaesm.state_dict(), param_save_path.replace('.pt', '') + '_2nd_end.pt')
+    scsurv_exp.bulk_data_split(bulk_seed, bulk_validation_num_or_ratio, bulk_test_num_or_ratio, cutting_off_0_1)
+    scsurv_exp = optimize_scSurv(scsurv_exp, third_lr = third_lr, x_batch_size=x_batch_size_scSurv, epoch = epoch, patience = patience, param_save_path = param_save_path)    
+    torch.save(scsurv_exp.vaesm.state_dict(), param_save_path)
     sc_adata.uns['param_save_path'] = param_save_path
-    sc_adata, bulk_adata = vae_results(vaesm_exp, sc_adata, bulk_adata)
-    sc_adata, bulk_adata = bulk_deconvolution_results(vaesm_exp, sc_adata, bulk_adata)
-    sc_adata, bulk_adata = beta_z_results(vaesm_exp, sc_adata, bulk_adata)
+    sc_adata, bulk_adata = vae_results(scsurv_exp, sc_adata, bulk_adata)
+    sc_adata, bulk_adata = bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata)
+    sc_adata, bulk_adata = beta_z_results(scsurv_exp, sc_adata, bulk_adata)
     if spatial_adata is not None:
-        sc_adata, spatial_adata = spatial_results(vaesm_exp, sc_adata, spatial_adata)
+        sc_adata, spatial_adata = spatial_results(scsurv_exp, sc_adata, spatial_adata)
     print('Done post process')
-    return sc_adata, bulk_adata, model_params_dict, spatial_adata, vaesm_exp
+    return sc_adata, bulk_adata, model_params_dict, spatial_adata, scsurv_exp
 
 def scSurv_preprocess(sc_adata, bulk_adata, per =  0.01, n_top_genes = 5000, highly_variable='bulk'):
         

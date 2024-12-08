@@ -55,8 +55,8 @@ class scSurvExperiment:
         else:
             self.spatial_norm_mat = None
             spatial_num = 0
-        self.vaesm = scSurv(bulk_num = self.bulk_data_manager.bulk_count.shape[0], spatial_num = spatial_num, batch_onehot_dim = batch_onehot.shape[1], **self.model_params)
-        self.vaesm.to(self.device)
+        self.scsurv = scSurv(bulk_num = self.bulk_data_manager.bulk_count.shape[0], spatial_num = spatial_num, batch_onehot_dim = batch_onehot.shape[1], **self.model_params)
+        self.scsurv.to(self.device)
         self.checkpoint=checkpoint
         self.usePoisson_sc = usePoisson_sc
         self.epoch = 0
@@ -71,41 +71,41 @@ class scSurvExperiment:
         self.bulk_data_manager.bulk_split(n_bulk_split, validation_num, test_num, censor_np)
 
     def elbo_loss(self, x, xnorm_mat, bulk_count, bulk_norm_mat, spatial_count, spatial_norm_mat, batch_onehot, bulk_idx):
-        z, qz, x_hat, p_bulk, p_spatial, bulk_hat, spatial_hat, theta_x, theta_bulk, theta_spatial, beta_z = self.vaesm(x, batch_onehot)
-        if self.vaesm.mode == 'sc':
+        z, qz, x_hat, p_bulk, p_spatial, bulk_hat, spatial_hat, theta_x, theta_bulk, theta_spatial, beta_z = self.scsurv(x, batch_onehot)
+        if self.scsurv.mode == 'sc':
             elbo_loss = self.calc_kld(qz).sum()
             if self.usePoisson_sc:
                 elbo_loss += self.calc_poisson_loss(ld=x_hat, norm_mat=xnorm_mat, obs=x).sum()
             else:
                 elbo_loss += self.calc_nb_loss(x_hat, xnorm_mat, theta_x, x).sum()
-        elif self.vaesm.mode == 'bulk':
+        elif self.scsurv.mode == 'bulk':
             elbo_loss = self.calc_nb_loss(bulk_hat, bulk_norm_mat, theta_bulk, bulk_count).sum()
-        elif self.vaesm.mode == 'spatial':
+        elif self.scsurv.mode == 'spatial':
             elbo_loss = self.calc_nb_loss(spatial_hat, spatial_norm_mat, theta_spatial, spatial_count).sum()
-        elif self.vaesm.mode == 'beta_z' or self.vaesm.mode == 'gamma_z':
+        elif self.scsurv.mode == 'beta_z' or self.scsurv.mode == 'gamma_z':
             time_indicators = self.cutting_off_0_1.to(self.device)
             survival_time = self.survival_time.to(self.device)
             linear_predictor = torch.sum(beta_z * p_bulk, dim=1)
             neg_log_partial_likelihood, sorted_survival_time, sorted_linear_predictor, sorted_event_observed = self.calc_hazard_loss_beta_z(linear_predictor, survival_time, time_indicators, bulk_idx, self.method)
             elbo_loss = neg_log_partial_likelihood
-            if not self.vaesm.training:
+            if not self.scsurv.training:
                 c_index = concordance_index(sorted_survival_time.detach().cpu().numpy(), -sorted_linear_predictor.detach().cpu().numpy(), sorted_event_observed.detach().cpu().numpy())
                 elbo_loss = - c_index * x.shape[0]
         return(elbo_loss)
         
     def train_epoch(self):
-        self.vaesm.train()
+        self.scsurv.train()
         total_loss = 0
         entry_num = 0
         for x, xnorm_mat, batch_onehot in self.x_data_manager.train_loader:
             x = x.to(self.device)
             xnorm_mat = xnorm_mat.to(self.device)
             batch_onehot = batch_onehot.to(self.device)
-            self.vaesm_optimizer.zero_grad()
+            self.scsurv_optimizer.zero_grad()
             bulk_idx = self.bulk_data_manager.train_idx.to(self.device)
             loss = self.elbo_loss(x, xnorm_mat, self.bulk_count, self.bulk_norm_mat,  self.spatial_count, self.spatial_norm_mat, batch_onehot, bulk_idx)
             loss.backward()
-            self.vaesm_optimizer.step()
+            self.scsurv_optimizer.step()
             entry_num += x.shape[0]
             total_loss = total_loss + loss.item()
         loss_val = total_loss / entry_num
@@ -113,7 +113,7 @@ class scSurvExperiment:
         
     def evaluate(self, mode='test'):
         with torch.no_grad():
-            self.vaesm.eval()
+            self.scsurv.eval()
             if mode == 'test':            
                 x = self.x_data_manager.test_x.to(self.device)
                 xnorm_mat = self.x_data_manager.test_xnorm_mat.to(self.device)
@@ -131,7 +131,7 @@ class scSurvExperiment:
     
     def evaluate_train(self):
         with torch.no_grad():
-            self.vaesm.eval()
+            self.scsurv.eval()
             x = self.x_data_manager.train_x.to(self.device)
             xnorm_mat = self.x_data_manager.train_xnorm_mat.to(self.device)
             batch_onehot = self.x_data_manager.train_batch_onehot.to(self.device)
@@ -150,13 +150,13 @@ class scSurvExperiment:
             val_loss_list.append(val_loss)
             val_loss_mean = mean(val_loss_list)
             if self.use_val_loss_mean == True:
-                earlystopping(val_loss_mean, self.vaesm)
+                earlystopping(val_loss_mean, self.scsurv)
             else:
-                earlystopping(val_loss, self.vaesm)
+                earlystopping(val_loss, self.scsurv)
             if earlystopping.early_stop:
                 print(f"Early Stopping! at {epoch} epoch, best score={earlystopping.best_score}")
                 break
-            if self.vaesm.mode == 'beta_z':
+            if self.scsurv.mode == 'beta_z':
                 if epoch % 10 == 0:
                     total_data_loss = self.evaluate_train()
                     train_c_index = total_data_loss
@@ -170,7 +170,7 @@ class scSurvExperiment:
         return epoch
 
     def initialize_optimizer(self, lr):
-        self.vaesm_optimizer = torch.optim.AdamW(self.vaesm.parameters(), lr=lr)
+        self.scsurv_optimizer = torch.optim.AdamW(self.scsurv.parameters(), lr=lr)
 
     def initialize_loader(self, x_batch_size):
         self.x_data_manager.initialize_loader(x_batch_size)
