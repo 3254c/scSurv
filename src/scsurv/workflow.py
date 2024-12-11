@@ -61,12 +61,12 @@ def run_scSurv(
                                 usePoisson_sc=usePoisson_sc, batch_onehot=batch_onehot, spatial_count=spatial_count, method=method, use_val_loss_mean=use_val_loss_mean)
 
     scsurv_exp = optimize_vae(scsurv_exp=scsurv_exp, first_lr=first_lr, x_batch_size=x_batch_size_VAE, epoch=epoch, patience=patience, param_save_path=param_save_path)
-    torch.save(scsurv_exp.vaesm.state_dict(), param_save_path.replace('.pt', '') + '_1st_end.pt')
+    torch.save(scsurv_exp.scsurv.state_dict(), param_save_path.replace('.pt', '') + '_1st_end.pt')
     scsurv_exp = optimize_deepcolor(scsurv_exp=scsurv_exp, second_lr=second_lr, x_batch_size=x_batch_size_DeepCOLOR, epoch=epoch, patience=patience, param_save_path=param_save_path, spatial_adata=spatial_adata)
-    torch.save(scsurv_exp.vaesm.state_dict(), param_save_path.replace('.pt', '') + '_2nd_end.pt')
+    torch.save(scsurv_exp.scsurv.state_dict(), param_save_path.replace('.pt', '') + '_2nd_end.pt')
     scsurv_exp.bulk_data_split(bulk_seed, bulk_validation_num_or_ratio, bulk_test_num_or_ratio, cutting_off_0_1)
     scsurv_exp = optimize_scSurv(scsurv_exp, third_lr = third_lr, x_batch_size=x_batch_size_scSurv, epoch = epoch, patience = patience, param_save_path = param_save_path)    
-    torch.save(scsurv_exp.vaesm.state_dict(), param_save_path)
+    torch.save(scsurv_exp.scsurv.state_dict(), param_save_path)
     sc_adata.uns['param_save_path'] = param_save_path
     sc_adata, bulk_adata = vae_results(scsurv_exp, sc_adata, bulk_adata)
     sc_adata, bulk_adata = bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata)
