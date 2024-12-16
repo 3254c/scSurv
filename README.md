@@ -7,10 +7,6 @@ scSurv is a novel method for single-cell survival analysis.
 
 Developed by Chikara Mizukoshi
 
-Citation
-
-Chikara Mizukoshi, Yasuhiro Kojima, Shuto Hayashi, Ko Abe, Daisuke Kasugai, Teppei Shimamura
-
 [bioRxiv](https://www.biorxiv.org/content/10.1101/2024.12.10.627659v1)
 
 # Instalation
