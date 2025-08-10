@@ -13,6 +13,7 @@ This framework enables the identification of novel cell populations and genes in
 
 [Yasuhiro Kojima's lab](https://www.ncc.go.jp/jp/ri/division/computational_life_science),   National Cancer Center Research Institute, Tokyo, Japan
 
+![scSurv](conceptial_fig.pdf)
 
 # Installation
 You can install scSurv using pip command.
