@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scsurv"
+version = "0.1.0"            
+description = "a deep generative model for single-cell survival analysis"
+readme = "README.md"
+requires-python = ">=3.8.16"
+license = { file = "LICENSE" }
+authors = [{ name = "Chikara Mizukoshi", email = "mizucoscos@gmail.com" }]
+keywords = ["bioinformatics", "single-cell"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent"
+]
+dependencies = [
+    "torch >= 1.13.1",
+    "lifelines >= 0.27.8",
+    "scanpy >= 1.9.5",
+    "pandas >= 1.5.3",
+    "numpy >= 1.23.5",
+    "matplotlib >= 3.7.2",
+    "scipy >= 1.10.1"
+]
+
+[project.urls]
+Homepage = "https://github.com/3254c/scSurv"
+Issues = "https://github.com/3254c/scSurv/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}     # ← srcレイアウト指定
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

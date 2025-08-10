@@ -33,7 +33,7 @@ matplotlib >= 3.7.2
 scipy >= 1.10.1
 
 # Usage
-You need to prepare reference scRNA-seq data and bulk RNA-seq data linked to clinical outcome. For example, TCGA bulk RNA-seq data is available from the Genomic Data Commons (GDC) Data Portal (https://portal.gdc.cancer.gov/). For examples of reference scRNA-seq data, please refer to our paper. 
+You need to prepare reference scRNA-seq data and bulk RNA-seq data linked to clinical outcome. For instance, TCGA bulk RNA-seq data is available from the Genomic Data Commons (GDC) Data Portal (https://portal.gdc.cancer.gov/). For examples of reference scRNA-seq data, please refer to our paper. 
 
 In the tutorial, we demonstrate the usage of scSurv using simulated data.
 The bulk_adata.obs must contain the survival outcome data and the event indicators (censoring status).

@@ -2,6 +2,7 @@
 scsurv-env
 figures
 src/scsurv/preprocess.py
+tutolial_simulation.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -19,6 +20,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+.pypirc
 lib64/
 parts/
 sdist/
