@@ -15,6 +15,11 @@ This framework enables the identification of novel cell populations and genes in
 
 ![scSurv](conceptial_fig.png)
 
+## The scSurv framework
+1. The VAE compresses raw gene expression into low-dimensional latent cell representations
+2. Deconvolution of bulk data
+3. Estimation of regression coefficients in hazard functions for each cell using the extended Cox proportional hazards model
+
 # Installation
 You can install scSurv using pip command.
 ```
