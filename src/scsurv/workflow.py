@@ -8,7 +8,7 @@ from .utils import make_inputs, safe_toarray, make_sample_one_hot_mat, vae_resul
 
 def run_scSurv(
         sc_adata, bulk_adata, param_save_path, epoch, batch_key, bulk_seed=0, spatial_adata = None, method='efron',
-        survival_time_label = 'survival_times', survival_time_censor = 'vital_status'):
+        survival_time_label = 'survival_times', survival_time_censor = 'vital_status', saved_path = None):
     
     x_batch_size_VAE = 1000
     x_batch_size_DeepCOLOR = 1000
@@ -25,52 +25,59 @@ def run_scSurv(
     
     patience=10
     usePoisson_sc=True
-    
-    survival_time_np = (bulk_adata.obs[survival_time_label]).values
-    survival_time = torch.tensor(survival_time_np)
-
     x_count, bulk_count = make_inputs(sc_adata, bulk_adata)
-
+    model_params['x_dim'] = x_count.size()[1]
     batch_onehot = make_sample_one_hot_mat(sc_adata, batch_key)
 
-    if survival_time_censor=='vital_status':
-        valid_values = ['Dead', 'Alive']
-        if not all(value in valid_values for value in bulk_adata.obs[survival_time_censor]):
-            raise ValueError("Invalid values found in bulk_adata.obs[survival_time_censor]. Only 'Dead' and 'Alive' are allowed.")
-        vital_status_values = np.where(bulk_adata.obs[survival_time_censor] == 'Dead', 1, 0)
-        cutting_off_0_1 = torch.tensor(vital_status_values)
-    else:
-        cutting_off_0_1 = torch.tensor(bulk_adata.obs[survival_time_censor].values)
-
-    model_params['x_dim'] = x_count.size()[1]
-    model_params_dict = {'1st_lr':first_lr, '2nd_lr':second_lr, '3rd_lr':third_lr, 'patience':patience, 'bulk_seed':bulk_seed,
-                         'x_batch_size_VAE':x_batch_size_VAE, 'x_batch_size_DeepCOLOR':x_batch_size_DeepCOLOR, 'x_batch_size_scSurv':x_batch_size_scSurv,
-                         'n_var':sc_adata.n_vars, 'usePoisson_sc':usePoisson_sc, 'batch_key':batch_key, 
-                         'n_obs_sc':sc_adata.n_obs, 'n_obs_bulk':bulk_adata.n_obs, 'method':method, 'use_val_loss_mean:' : use_val_loss_mean,
-                         'bulk_validation_num_or_ratio': bulk_validation_num_or_ratio, 'bulk_test_num_or_ratio': bulk_test_num_or_ratio,}
-
-
-    if spatial_adata is not None:
-        spatial_count = torch.tensor(safe_toarray(spatial_adata.X))
-        model_params_dict['n_obs_spatial'] = spatial_adata.n_obs
-    else:
+    if saved_path is not None:
+        survival_time = None
+        cutting_off_0_1 = None
         spatial_count = None
-    model_params_dict.update(model_params)
-    print(model_params_dict)
-    scsurv_exp = scSurvExperiment(model_params=model_params, x_count=x_count, bulk_count=bulk_count, survival_time=survival_time, cutting_off_0_1=cutting_off_0_1, x_batch_size=x_batch_size_VAE, checkpoint=param_save_path,
-                                usePoisson_sc=usePoisson_sc, batch_onehot=batch_onehot, spatial_count=spatial_count, method=method, use_val_loss_mean=use_val_loss_mean)
+        scsurv_exp = scSurvExperiment(model_params=model_params, x_count=x_count, bulk_count=bulk_count, survival_time=survival_time, cutting_off_0_1=cutting_off_0_1, x_batch_size=x_batch_size_VAE, checkpoint=param_save_path,
+                                    usePoisson_sc=usePoisson_sc, batch_onehot=batch_onehot, spatial_count=spatial_count, method=method, use_val_loss_mean=use_val_loss_mean, saved_path=saved_path)
+        scsurv_exp.scsurv.load_state_dict(torch.load(saved_path))
+        sc_adata.uns['param_save_path'] = saved_path
+    else:
+        survival_time_np = (bulk_adata.obs[survival_time_label]).values
+        survival_time = torch.tensor(survival_time_np)
 
-    scsurv_exp = optimize_vae(scsurv_exp=scsurv_exp, first_lr=first_lr, x_batch_size=x_batch_size_VAE, epoch=epoch, patience=patience, param_save_path=param_save_path)
-    torch.save(scsurv_exp.scsurv.state_dict(), param_save_path.replace('.pt', '') + '_1st_end.pt')
-    scsurv_exp = optimize_deepcolor(scsurv_exp=scsurv_exp, second_lr=second_lr, x_batch_size=x_batch_size_DeepCOLOR, epoch=epoch, patience=patience, param_save_path=param_save_path, spatial_adata=spatial_adata)
-    torch.save(scsurv_exp.scsurv.state_dict(), param_save_path.replace('.pt', '') + '_2nd_end.pt')
-    scsurv_exp.bulk_data_split(bulk_seed, bulk_validation_num_or_ratio, bulk_test_num_or_ratio, cutting_off_0_1)
-    scsurv_exp = optimize_scSurv(scsurv_exp, third_lr = third_lr, x_batch_size=x_batch_size_scSurv, epoch = epoch, patience = patience, param_save_path = param_save_path)    
-    torch.save(scsurv_exp.scsurv.state_dict(), param_save_path)
-    sc_adata.uns['param_save_path'] = param_save_path
-    sc_adata, bulk_adata = vae_results(scsurv_exp, sc_adata, bulk_adata)
+        if survival_time_censor=='vital_status':
+            valid_values = ['Dead', 'Alive']
+            if not all(value in valid_values for value in bulk_adata.obs[survival_time_censor]):
+                raise ValueError("Invalid values found in bulk_adata.obs[survival_time_censor]. Only 'Dead' and 'Alive' are allowed.")
+            vital_status_values = np.where(bulk_adata.obs[survival_time_censor] == 'Dead', 1, 0)
+            cutting_off_0_1 = torch.tensor(vital_status_values)
+        else:
+            cutting_off_0_1 = torch.tensor(bulk_adata.obs[survival_time_censor].values)
+
+        model_params_dict = {'1st_lr':first_lr, '2nd_lr':second_lr, '3rd_lr':third_lr, 'patience':patience, 'bulk_seed':bulk_seed,
+                            'x_batch_size_VAE':x_batch_size_VAE, 'x_batch_size_DeepCOLOR':x_batch_size_DeepCOLOR, 'x_batch_size_scSurv':x_batch_size_scSurv,
+                            'n_var':sc_adata.n_vars, 'usePoisson_sc':usePoisson_sc, 'batch_key':batch_key, 
+                            'n_obs_sc':sc_adata.n_obs, 'n_obs_bulk':bulk_adata.n_obs, 'method':method, 'use_val_loss_mean:' : use_val_loss_mean,
+                            'bulk_validation_num_or_ratio': bulk_validation_num_or_ratio, 'bulk_test_num_or_ratio': bulk_test_num_or_ratio,}
+
+
+        if spatial_adata is not None:
+            spatial_count = torch.tensor(safe_toarray(spatial_adata.X))
+            model_params_dict['n_obs_spatial'] = spatial_adata.n_obs
+        else:
+            spatial_count = None
+        model_params_dict.update(model_params)
+        print(model_params_dict)
+        scsurv_exp = scSurvExperiment(model_params=model_params, x_count=x_count, bulk_count=bulk_count, survival_time=survival_time, cutting_off_0_1=cutting_off_0_1, x_batch_size=x_batch_size_VAE, checkpoint=param_save_path,
+                                    usePoisson_sc=usePoisson_sc, batch_onehot=batch_onehot, spatial_count=spatial_count, method=method, use_val_loss_mean=use_val_loss_mean)
+        scsurv_exp = optimize_vae(scsurv_exp=scsurv_exp, first_lr=first_lr, x_batch_size=x_batch_size_VAE, epoch=epoch, patience=patience, param_save_path=param_save_path)
+        torch.save(scsurv_exp.scsurv.state_dict(), param_save_path.replace('.pt', '') + '_1st_end.pt')
+        scsurv_exp = optimize_deepcolor(scsurv_exp=scsurv_exp, second_lr=second_lr, x_batch_size=x_batch_size_DeepCOLOR, epoch=epoch, patience=patience, param_save_path=param_save_path, spatial_adata=spatial_adata)
+        torch.save(scsurv_exp.scsurv.state_dict(), param_save_path.replace('.pt', '') + '_2nd_end.pt')
+        scsurv_exp.bulk_data_split(bulk_seed, bulk_validation_num_or_ratio, bulk_test_num_or_ratio, cutting_off_0_1)
+        scsurv_exp = optimize_scSurv(scsurv_exp, third_lr = third_lr, x_batch_size=x_batch_size_scSurv, epoch = epoch, patience = patience, param_save_path = param_save_path)    
+        torch.save(scsurv_exp.scsurv.state_dict(), param_save_path)
+        sc_adata.uns['param_save_path'] = param_save_path
+
+    sc_adata = vae_results(scsurv_exp, sc_adata)
     sc_adata, bulk_adata = bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata)
-    sc_adata, bulk_adata = beta_z_results(scsurv_exp, sc_adata, bulk_adata)
+    sc_adata = beta_z_results(scsurv_exp, sc_adata)
     if spatial_adata is not None:
         sc_adata, spatial_adata = spatial_results(scsurv_exp, sc_adata, spatial_adata)
     print('Done post process')

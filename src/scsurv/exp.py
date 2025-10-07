@@ -34,29 +34,14 @@ class EarlyStopping:
 
 class scSurvExperiment:
     def __init__(self, model_params, x_count, bulk_count, survival_time, cutting_off_0_1, x_batch_size, checkpoint, usePoisson_sc, 
-                batch_onehot, spatial_count, method, use_val_loss_mean):
+                batch_onehot, spatial_count, method, use_val_loss_mean, saved_path=None):
         print('torch.cuda.is_available()', torch.cuda.is_available())
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.batch_onehot = batch_onehot
         self.device = torch.device(device)
         self.x_data_manager = ScDataManager(x_count, batch_size=x_batch_size, batch_onehot=batch_onehot)
-        self.bulk_data_manager = BulkDataManager(bulk_count, survival_time = survival_time, cutting_off_0_1=cutting_off_0_1)
-        self.bulk_count = self.bulk_data_manager.bulk_count.to(self.device)
-        self.bulk_norm_mat = self.bulk_data_manager.bulk_norm_mat.to(self.device)        
-        self.cutting_off_0_1 = self.bulk_data_manager.cutting_off_0_1.to(self.device)
-        self.survival_time = self.bulk_data_manager.survival_time.to(self.device)
         self.spatial_count = spatial_count
         self.model_params = model_params
-        if spatial_count is not None:
-            self.spatial_data_manager = SpatialDataManager(spatial_count)
-            self.spatial_count = self.spatial_data_manager.spatial_count.to(self.device)
-            self.spatial_norm_mat = self.spatial_data_manager.spatial_norm_mat.to(self.device)
-            spatial_num = self.spatial_data_manager.spatial_count.shape[0]    
-        else:
-            self.spatial_norm_mat = None
-            spatial_num = 0
-        self.scsurv = scSurv(bulk_num = self.bulk_data_manager.bulk_count.shape[0], spatial_num = spatial_num, batch_onehot_dim = batch_onehot.shape[1], **self.model_params)
-        self.scsurv.to(self.device)
         self.checkpoint=checkpoint
         self.usePoisson_sc = usePoisson_sc
         self.epoch = 0
@@ -64,6 +49,29 @@ class scSurvExperiment:
         self.use_val_loss_mean = use_val_loss_mean
         self.bulk_test_num_or_ratio = None
         self.bulk_validation_num_or_ratio = None
+
+        if saved_path is not None:
+            saved_param = torch.load(saved_path, map_location='cpu')
+            bulk_num = saved_param['dec_z2p_bulk.h2ld.weight'].shape[0]
+            spatial_num = 0
+            self.scsurv = scSurv(bulk_num = bulk_num, spatial_num = spatial_num, batch_onehot_dim = batch_onehot.shape[1], **self.model_params)
+        else:
+            self.bulk_data_manager = BulkDataManager(bulk_count, survival_time = survival_time, cutting_off_0_1=cutting_off_0_1)
+            self.bulk_count = self.bulk_data_manager.bulk_count.to(self.device)
+            self.bulk_norm_mat = self.bulk_data_manager.bulk_norm_mat.to(self.device)        
+            self.cutting_off_0_1 = self.bulk_data_manager.cutting_off_0_1.to(self.device)
+            self.survival_time = self.bulk_data_manager.survival_time.to(self.device)
+            if spatial_count is not None:
+                self.spatial_data_manager = SpatialDataManager(spatial_count)
+                self.spatial_count = self.spatial_data_manager.spatial_count.to(self.device)
+                self.spatial_norm_mat = self.spatial_data_manager.spatial_norm_mat.to(self.device)
+                spatial_num = self.spatial_data_manager.spatial_count.shape[0]    
+            else:
+                self.spatial_norm_mat = None
+                spatial_num = 0
+            self.scsurv = scSurv(bulk_num = self.bulk_data_manager.bulk_count.shape[0], spatial_num = spatial_num, batch_onehot_dim = batch_onehot.shape[1], **self.model_params)
+        self.scsurv.to(self.device)
+
 
     def bulk_data_split(self, n_bulk_split, validation_num, test_num, censor_np):
         self.bulk_test_num_or_ratio = test_num
@@ -199,7 +207,7 @@ class scSurvExperiment:
         elif method == 'efron':
             for t, n_events in zip(unique_times, counts):
                 risk_set = sorted_survival_time >= t
-                tie_hazards = sorted_hazard_ratio[sorted_survival_time == t]
+                tie_hazards = sorted_hazard_ratio[(sorted_survival_time == t) & (sorted_event_observed == 1)]
                 risk_sum = sorted_hazard_ratio[risk_set].sum()
                 tie_sum = tie_hazards.sum()
                 if n_events == 1:

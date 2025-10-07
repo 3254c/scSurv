@@ -39,10 +39,16 @@ def make_inputs(sc_adata, bulk_adata, layer_name='X'):
     input_checks(sc_adata, layer_name)
     if layer_name == 'X':
         x = torch.tensor(safe_toarray(sc_adata.X))
-        s = torch.tensor(safe_toarray(bulk_adata.X))
+        if bulk_adata is not None:
+            s = torch.tensor(safe_toarray(bulk_adata.X))
+        else:
+            s = None
     else:
         x = torch.tensor(safe_toarray(sc_adata.layers[layer_name]))
-        s = torch.tensor(safe_toarray(bulk_adata.layers[layer_name]))
+        if bulk_adata is not None:
+            s = torch.tensor(safe_toarray(bulk_adata.layers[layer_name]))
+        else:
+            s = None
     return x, s
 
 def optimize_vae(scsurv_exp, first_lr, x_batch_size, epoch, patience, param_save_path):
@@ -93,7 +99,7 @@ def optimize_scSurv(scsurv_exp, third_lr, x_batch_size, epoch, patience, param_s
     return scsurv_exp
 
 
-def vae_results(scsurv_exp, sc_adata, bulk_adata):
+def vae_results(scsurv_exp, sc_adata):
     print('vae_results')
     with torch.no_grad():
         torch.cuda.empty_cache()
@@ -128,7 +134,7 @@ def vae_results(scsurv_exp, sc_adata, bulk_adata):
         test_x_correlation_gene = (xld_df.T[test_idx].T).corrwith((x_df / xnorm_mat_np).T[test_idx].T).mean()
 
         print('all_x_correlation_gene', f"{x_correlation_gene:.3f}", 'train_x_correlation_gene', f"{train_x_correlation_gene:.3f}", 'val_x_correlation_gene', f"{val_x_correlation_gene:.3f}", 'test_x_correlation_gene', f"{test_x_correlation_gene:.3f}")
-        return sc_adata, bulk_adata
+        return sc_adata
 
 def bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata):
     print('deconvolution_results')
@@ -150,15 +156,15 @@ def bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata):
         bulk_scoeff_add_np = scsurv_exp.scsurv.softplus(scsurv_exp.scsurv.log_bulk_coeff_add).cpu().detach().numpy()
         xld_np = sc_adata.layers['xld']
         bulk_hat_np = np.matmul(bulk_pl_np, xld_np * bulk_scoeff_np) + bulk_scoeff_add_np #spatialの発現のmean parameter #matmulは行列の積 #.cpu().detach().numpy()
-        bulk_p_df = pd.DataFrame(bulk_pl_np.transpose(), index=sc_adata.obs_names, columns=bulk_adata.obs_names)
         # bulk_adata.obsm['map2sc'] = bulk_p_df.transpose().values
-        sc_adata.obsm['map2bulk'] = bulk_p_df.values
-        bulk_norm_mat=scsurv_exp.bulk_data_manager.bulk_norm_mat
-        bulk_norm_mat_np = bulk_norm_mat.cpu().detach().numpy()
-        bulk_count = scsurv_exp.bulk_data_manager.bulk_count
-        bulk_count_df = pd.DataFrame(bulk_count.cpu().detach().numpy(), columns=list(bulk_adata.var_names))
-        bulk_hat_df = pd.DataFrame(bulk_hat_np, columns=list(bulk_adata.var_names))
-        bulk_adata.layers['bulk_hat'] = pd.DataFrame(bulk_hat_np, index = list(bulk_adata.obs_names), columns=list(bulk_adata.var_names))
+        sc_adata.obsm['map2bulk'] = bulk_pl_np.transpose()
+        if bulk_adata is not None:
+            bulk_norm_mat=scsurv_exp.bulk_data_manager.bulk_norm_mat
+            bulk_norm_mat_np = bulk_norm_mat.cpu().detach().numpy()
+            bulk_count = scsurv_exp.bulk_data_manager.bulk_count
+            bulk_count_df = pd.DataFrame(bulk_count.cpu().detach().numpy(), columns=list(sc_adata.var_names))
+            bulk_hat_df = pd.DataFrame(bulk_hat_np, columns=list(sc_adata.var_names))
+            bulk_adata.layers['bulk_hat'] = pd.DataFrame(bulk_hat_np, index = list(bulk_adata.obs_names), columns=list(sc_adata.var_names))
         bulk_correlation_gene=(bulk_hat_df).corrwith(bulk_count_df / bulk_norm_mat_np).mean()
         print('bulk_correlation_gene', bulk_correlation_gene)
         return sc_adata, bulk_adata
@@ -199,7 +205,7 @@ def spatial_results(scsurv_exp, sc_adata, spatial_adata):
         print('spatial_correlation_gene', spatial_correlation_gene)
         return sc_adata, spatial_adata
 
-def beta_z_results(scsurv_exp, sc_adata, bulk_adata):
+def beta_z_results(scsurv_exp, sc_adata):
     with torch.no_grad():
         torch.cuda.empty_cache()
         batch_onehot = scsurv_exp.x_data_manager.batch_onehot.to(scsurv_exp.device)
@@ -217,4 +223,4 @@ def beta_z_results(scsurv_exp, sc_adata, bulk_adata):
         sc_adata.obs['raw_beta_z'] = beta_z_np
         sc_adata.obs['raw_beta_zl'] = beta_zl_np
         sc_adata.obs['beta_z'] = beta_z_np - np.min(beta_z_np)
-        return sc_adata, bulk_adata
+        return sc_adata
