@@ -63,5 +63,5 @@ epoch = 10000
 
 sc_adata, bulk_adata, model_params_dict, spatial_adata, scsurv_exp = workflow.run_scSurv(sc_adata, bulk_adata, exp_name, epoch, batch_key)
 ```
-![visualization celltype annotation](umap_celltype_minor.png)
-![visualization setting and estimated contribution](umap_setting_and_estimated_beta.png)
+![visualization celltype annotation](fig/simulation_umap_celltype_minor.png)
+![visualization setting and estimated contribution](fig/simulation_umap_setting_and_estimated_beta.png)
