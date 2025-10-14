@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scsurv"
-version = "0.1.0"            
+version = "0.2.0"            
 description = "a deep generative model for single-cell survival analysis"
 readme = "README.md"
 requires-python = ">=3.8.16"
@@ -36,3 +36,5 @@ package-dir = {"" = "src"}     # ← srcレイアウト指定
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+scsurv = ["data/*"]

@@ -1,4 +1,6 @@
-*.pt
+105801.cleaned.pt
+105801.pt
+clean_pt.py
 scsurv-env
 figures
 src/scsurv/preprocess.py
@@ -37,6 +39,9 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+
+*.csv.gz
+_data
 
 # Installer logs
 pip-log.txt

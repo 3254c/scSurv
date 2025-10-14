@@ -105,7 +105,7 @@ def vae_results(scsurv_exp, sc_adata):
         torch.cuda.empty_cache()
         batch_onehot = scsurv_exp.x_data_manager.batch_onehot.to(scsurv_exp.device)
         batch_onehot_np = batch_onehot.detach().cpu().numpy()
-        # sc_adata.obsm['batch_onehot'] = batch_onehot_np
+        sc_adata.obsm['batch_onehot'] = batch_onehot_np
         x = scsurv_exp.x_data_manager.x_count.to(scsurv_exp.device)
         x_np = x.detach().cpu().numpy()
         xb = torch.cat([x, batch_onehot], dim=-1)
@@ -159,14 +159,14 @@ def bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata):
         # bulk_adata.obsm['map2sc'] = bulk_p_df.transpose().values
         sc_adata.obsm['map2bulk'] = bulk_pl_np.transpose()
         if bulk_adata is not None:
+            bulk_hat_df = pd.DataFrame(bulk_hat_np, columns=list(sc_adata.var_names))
             bulk_norm_mat=scsurv_exp.bulk_data_manager.bulk_norm_mat
             bulk_norm_mat_np = bulk_norm_mat.cpu().detach().numpy()
             bulk_count = scsurv_exp.bulk_data_manager.bulk_count
             bulk_count_df = pd.DataFrame(bulk_count.cpu().detach().numpy(), columns=list(sc_adata.var_names))
-            bulk_hat_df = pd.DataFrame(bulk_hat_np, columns=list(sc_adata.var_names))
             bulk_adata.layers['bulk_hat'] = pd.DataFrame(bulk_hat_np, index = list(bulk_adata.obs_names), columns=list(sc_adata.var_names))
-        bulk_correlation_gene=(bulk_hat_df).corrwith(bulk_count_df / bulk_norm_mat_np).mean()
-        print('bulk_correlation_gene', bulk_correlation_gene)
+            bulk_correlation_gene=(bulk_hat_df).corrwith(bulk_count_df / bulk_norm_mat_np).mean()
+            print('bulk_correlation_gene', bulk_correlation_gene)
         return sc_adata, bulk_adata
 
 def spatial_results(scsurv_exp, sc_adata, spatial_adata):

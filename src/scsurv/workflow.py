@@ -37,6 +37,7 @@ def run_scSurv(
                                     usePoisson_sc=usePoisson_sc, batch_onehot=batch_onehot, spatial_count=spatial_count, method=method, use_val_loss_mean=use_val_loss_mean, saved_path=saved_path)
         scsurv_exp.scsurv.load_state_dict(torch.load(saved_path))
         sc_adata.uns['param_save_path'] = saved_path
+        model_params_dict = {}
     else:
         survival_time_np = (bulk_adata.obs[survival_time_label]).values
         survival_time = torch.tensor(survival_time_np)
