@@ -66,7 +66,7 @@ sc_adata, bulk_adata, _ = workflow.post_process(scsurv_exp, sc_adata, bulk_adata
 ![visualization celltype annotation](fig/simulation_umap_celltype_minor.png)
 ![visualization setting and estimated contribution](fig/simulation_umap_setting_and_estimated_beta.png)
 
-## Run scSurv (simulated data)
+## Run scSurv (melanoma data)
 This simulation demonstrates running scSurv using a melanoma scRNA-seq dataset and a TCGA-SKCM bulkRNA-seq dataset. Since the scRNA-seq data is used as a reference, data that includes many patients is recommended. The scSurv paper used was GSE115978. The TCGA-SKCM bulkRNA-seq data should be provided by the user via the GDC Data Portal.
 ```
 bulk_adata = None
