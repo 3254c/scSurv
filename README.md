@@ -51,6 +51,15 @@ scipy >= 1.10.1
 ## Preparing scRNA-seq data and bulk RNA-seq data
 You need to prepare reference scRNA-seq data and bulk RNA-seq data linked to clinical outcome. For instance, TCGA bulk RNA-seq data is available from the Genomic Data Commons (GDC) Data Portal (https://portal.gdc.cancer.gov/). For examples of reference scRNA-seq data, please refer to our paper. 
 
+## Explanation of each function
+``workflow.run_scSurv``: Runs the three steps of scSurv (VAE, deconvolution, and survival analysis)
+
+``workflow.post_process``: Saves the results of scSurv to anndata
+
+``workflow.scSurv_preprocess``: Preprocesses the prepared single-cell data and bulk data
+
+``workflow.scSurv_preprocess_spatial``: If using spatial transcriptome data, preprocesses the prepared single-cell data, bulk data, and spatial transcriptome data
+
 ## Run scSurv (simulated data)
 In [this tutolial](tutorial/tutolial_simulation.ipynb), we demonstrate the usage of scSurv using simulated data.
 The bulk_adata.obs must contain the survival outcome data and the event indicators (censoring status).
@@ -79,12 +88,3 @@ sc_adata, bulk_adata, _ = workflow.post_process(scsurv_exp, sc_adata, bulk_adata
 ![visualization celltype annotation](fig/SKCM_umap_celltype.png)
 ![visualization estimated contribution](fig/SKCM_umap_beta_z.png)
 ![visualization SPP1 and TNFSF10 gene expression](fig/SKCM_umap_SPP1_TNFSF10.png)
-
-## Explanation of each function
-``workflow.run_scSurv``: Runs the three steps of scSurv (VAE, deconvolution, and survival analysis)
-
-``workflow.post_process``: Saves the results of scSurv to anndata
-
-``workflow.scSurv_preprocess``: Preprocesses the prepared single-cell data and bulk data
-
-``workflow.scSurv_preprocess_spatial``: If using spatial transcriptome data, preprocesses the prepared single-cell data, bulk data, and spatial transcriptome data
