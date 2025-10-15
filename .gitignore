@@ -42,6 +42,7 @@ simulation_500k.py
 *.manifest
 *.spec
 *.pt
+*.h5ad
 
 *.csv.gz
 _data
