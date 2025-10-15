@@ -79,3 +79,9 @@ sc_adata, bulk_adata, _ = workflow.post_process(scsurv_exp, sc_adata, bulk_adata
 ![visualization celltype annotation](fig/SKCM_umap_celltype.png)
 ![visualization estimated contribution](fig/SKCM_umap_beta_z.png)
 ![visualization SPP1 and TNFSF10 gene expression](fig/SKCM_umap_SPP1_TNFSF10.png)
+
+## Explanation of each function
+workflow.run_scSurv: Runs the three steps of scSurv.
+workflow.post_process: Saves the results of scSurv to anndata
+workflow.scSurv_preprocess: Preprocesses the prepared single-cell data and bulk data
+workflow.scSurv_preprocess_spatial: If using spatial transcriptome data, preprocesses the prepared single-cell data, bulk data, and spatial transcriptome data
