@@ -52,7 +52,7 @@ scipy >= 1.10.1
 You need to prepare reference scRNA-seq data and bulk RNA-seq data linked to clinical outcome. For instance, TCGA bulk RNA-seq data is available from the Genomic Data Commons (GDC) Data Portal (https://portal.gdc.cancer.gov/). For examples of reference scRNA-seq data, please refer to our paper. 
 
 ## Run scSurv (simulated data)
-In the tutorial, we demonstrate the usage of scSurv using simulated data.
+In [this tutolial](tutorial/tutolial_simulation.ipynb), we demonstrate the usage of scSurv using simulated data.
 The bulk_adata.obs must contain the survival outcome data and the event indicators (censoring status).
 The scRNA-seq and bulk RNA-seq data must be raw counts.
 Please specify the batch_key parameter to indicate the sample origin annotation for each cell.
@@ -67,7 +67,7 @@ sc_adata, bulk_adata, _ = workflow.post_process(scsurv_exp, sc_adata, bulk_adata
 ![visualization setting and estimated contribution](fig/simulation_umap_setting_and_estimated_beta.png)
 
 ## Run scSurv (melanoma data)
-This simulation demonstrates running scSurv using a melanoma scRNA-seq dataset and a TCGA-SKCM bulkRNA-seq dataset. Since the scRNA-seq data is used as a reference, data that includes many patients is recommended. The scSurv paper used was GSE115978. The TCGA-SKCM bulkRNA-seq data should be provided by the user via the GDC Data Portal.
+[This tutolial](tutorial/tutolial_SKCM.ipynb) demonstrates running scSurv using a melanoma scRNA-seq dataset and a TCGA-SKCM bulkRNA-seq dataset. Since the scRNA-seq data is used as a reference, data that includes many patients is recommended. The scSurv paper used was GSE115978. The TCGA-SKCM bulkRNA-seq data should be provided by the user via the GDC Data Portal.
 ```
 bulk_adata = None
 batch_key = 'samples'
