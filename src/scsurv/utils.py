@@ -111,13 +111,18 @@ def vae_results(scsurv_exp, sc_adata):
         xb = torch.cat([x, batch_onehot], dim=-1)
         z, qz = scsurv_exp.scsurv.enc_z(xb)
         zl = qz.loc
-        xxx_list = []
-        for _ in range(100):
+        xld_mean = None
+        for i in range(100):
             zzz = qz.sample()
             zb = torch.cat([zzz, batch_onehot], dim=-1)
             xxx_np = scsurv_exp.scsurv.dec_z2x(zb).detach().cpu().numpy()
-            xxx_list.append(xxx_np)
-        xld_np = np.mean(xxx_list, axis=0)
+            if xld_mean is None:
+                xld_mean = xxx_np
+            else:
+                xld_mean += (xxx_np - xld_mean) / (i + 1)
+            del zzz, zb, xxx_np
+            torch.cuda.empty_cache()
+        xld_np = xld_mean
         sc_adata.obsm['zl'] = zl.detach().cpu().numpy()
         sc_adata.layers['xld'] = xld_np
         xnorm_mat=scsurv_exp.x_data_manager.xnorm_mat
@@ -136,7 +141,7 @@ def vae_results(scsurv_exp, sc_adata):
         print('all_x_correlation_gene', f"{x_correlation_gene:.3f}", 'train_x_correlation_gene', f"{train_x_correlation_gene:.3f}", 'val_x_correlation_gene', f"{val_x_correlation_gene:.3f}", 'test_x_correlation_gene', f"{test_x_correlation_gene:.3f}")
         return sc_adata
 
-def bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata):
+def bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata, save_memory):
     print('deconvolution_results')
     with torch.no_grad():
         torch.cuda.empty_cache()
@@ -144,29 +149,33 @@ def bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata):
         x = scsurv_exp.x_data_manager.x_count.to(scsurv_exp.device)
         xb = torch.cat([x, batch_onehot], dim=-1)
         z, qz = scsurv_exp.scsurv.enc_z(xb)
-        ppp_list = []
-        for _ in range(100):
+        p_mean = None
+        for i in range(100):
             zzz = qz.sample()
             ppp = scsurv_exp.scsurv.dec_z2p_bulk(zzz).detach().cpu().numpy()
-            ppp_list.append(ppp)
-        bulk_pl_np = np.mean(ppp_list, axis=0) #scRNAseq中の各細胞がspatialやbulkに占める割合
-        del zzz, ppp
-        #bulk_pl_np = scsurv_exp.scsurv.dec_z2p_bulk(zl).detach().cpu().numpy()
-        bulk_scoeff_np = scsurv_exp.scsurv.softplus(scsurv_exp.scsurv.log_bulk_coeff).cpu().detach().numpy()
-        bulk_scoeff_add_np = scsurv_exp.scsurv.softplus(scsurv_exp.scsurv.log_bulk_coeff_add).cpu().detach().numpy()
-        xld_np = sc_adata.layers['xld']
-        bulk_hat_np = np.matmul(bulk_pl_np, xld_np * bulk_scoeff_np) + bulk_scoeff_add_np #spatialの発現のmean parameter #matmulは行列の積 #.cpu().detach().numpy()
-        # bulk_adata.obsm['map2sc'] = bulk_p_df.transpose().values
+            if p_mean is None:
+                p_mean = ppp
+            else:
+                p_mean += (ppp - p_mean) / (i + 1)
+            del zzz, ppp
+            torch.cuda.empty_cache()
+        bulk_pl_np = p_mean
         sc_adata.obsm['map2bulk'] = bulk_pl_np.transpose()
-        if bulk_adata is not None:
-            bulk_hat_df = pd.DataFrame(bulk_hat_np, columns=list(sc_adata.var_names))
-            bulk_norm_mat=scsurv_exp.bulk_data_manager.bulk_norm_mat
-            bulk_norm_mat_np = bulk_norm_mat.cpu().detach().numpy()
-            bulk_count = scsurv_exp.bulk_data_manager.bulk_count
-            bulk_count_df = pd.DataFrame(bulk_count.cpu().detach().numpy(), columns=list(sc_adata.var_names))
-            bulk_adata.layers['bulk_hat'] = pd.DataFrame(bulk_hat_np, index = list(bulk_adata.obs_names), columns=list(sc_adata.var_names))
-            bulk_correlation_gene=(bulk_hat_df).corrwith(bulk_count_df / bulk_norm_mat_np).mean()
-            print('bulk_correlation_gene', bulk_correlation_gene)
+        if save_memory==False:
+            bulk_scoeff_np = scsurv_exp.scsurv.softplus(scsurv_exp.scsurv.log_bulk_coeff).cpu().detach().numpy()
+            bulk_scoeff_add_np = scsurv_exp.scsurv.softplus(scsurv_exp.scsurv.log_bulk_coeff_add).cpu().detach().numpy()
+            xld_np = sc_adata.layers['xld']
+            bulk_hat_np = np.matmul(bulk_pl_np, xld_np * bulk_scoeff_np) + bulk_scoeff_add_np #spatialの発現のmean parameter #matmulは行列の積 #.cpu().detach().numpy()
+            # bulk_adata.obsm['map2sc'] = bulk_p_df.transpose().values
+            if bulk_adata is not None:
+                bulk_hat_df = pd.DataFrame(bulk_hat_np, columns=list(sc_adata.var_names))
+                bulk_norm_mat=scsurv_exp.bulk_data_manager.bulk_norm_mat
+                bulk_norm_mat_np = bulk_norm_mat.cpu().detach().numpy()
+                bulk_count = scsurv_exp.bulk_data_manager.bulk_count
+                bulk_count_df = pd.DataFrame(bulk_count.cpu().detach().numpy(), columns=list(sc_adata.var_names))
+                bulk_adata.layers['bulk_hat'] = pd.DataFrame(bulk_hat_np, index = list(bulk_adata.obs_names), columns=list(sc_adata.var_names))
+                bulk_correlation_gene=(bulk_hat_df).corrwith(bulk_count_df / bulk_norm_mat_np).mean()
+                print('bulk_correlation_gene', bulk_correlation_gene)
         return sc_adata, bulk_adata
 
 def spatial_results(scsurv_exp, sc_adata, spatial_adata):

@@ -75,14 +75,18 @@ def run_scSurv(
         scsurv_exp = optimize_scSurv(scsurv_exp, third_lr = third_lr, x_batch_size=x_batch_size_scSurv, epoch = epoch, patience = patience, param_save_path = param_save_path)    
         torch.save(scsurv_exp.scsurv.state_dict(), param_save_path)
         sc_adata.uns['param_save_path'] = param_save_path
+    print('Done scSurv')
+    return sc_adata, bulk_adata, model_params_dict, spatial_adata, scsurv_exp
 
-    sc_adata = vae_results(scsurv_exp, sc_adata)
-    sc_adata, bulk_adata = bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata)
+def post_process(scsurv_exp, sc_adata, bulk_adata, spatial_adata=None, save_memory=False):
+    if save_memory==False:
+        sc_adata = vae_results(scsurv_exp, sc_adata)
+    sc_adata, bulk_adata = bulk_deconvolution_results(scsurv_exp, sc_adata, bulk_adata, save_memory)
     sc_adata = beta_z_results(scsurv_exp, sc_adata)
     if spatial_adata is not None:
         sc_adata, spatial_adata = spatial_results(scsurv_exp, sc_adata, spatial_adata)
     print('Done post process')
-    return sc_adata, bulk_adata, model_params_dict, spatial_adata, scsurv_exp
+    return sc_adata, bulk_adata, spatial_adata
 
 def scSurv_preprocess(sc_adata, bulk_adata, per =  0.01, n_top_genes = 5000, highly_variable='bulk'):
         
