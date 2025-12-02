@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17793054.svg)](https://doi.org/10.5281/zenodo.17793054)
+
 # scSurv
 ## Description
 [scSurv](https://www.biorxiv.org/content/10.1101/2024.12.10.627659v1) is a novel method for single-cell survival analysis.
